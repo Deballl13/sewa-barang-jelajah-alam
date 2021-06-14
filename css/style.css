@@ -1,0 +1,53 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito&display=swap");
+.brand-navbar {
+    font-size: 40px;
+    margin-top: -10px;
+}
+
+.nav-link {
+    font-size: 18px;
+    border-radius: 5px;
+}
+
+.link-active {
+    background-color: #03256c;
+}
+
+.nav-link:hover {
+    background-color: #03256c;
+    border-radius: 5px;
+}
+
+.content {
+    margin-top: 120px;
+}
+
+@media screen and (max-width: 992px) {
+    .navbar {
+        text-align: center;
+    }
+}
+
+.card {
+    border-radius: 7px !important;
+}
+
+body {
+    background-image: url("../img/bg-pattern.png");
+    font-family: "Nunito", sans-serif;
+}
+
+.toast-view {
+    margin-top: -100px;
+    width: 300px;
+    z-index: 100000;
+    display: none;
+}
+
+.carousel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    min-width: 100%;
+    min-height: 100%;
+}
