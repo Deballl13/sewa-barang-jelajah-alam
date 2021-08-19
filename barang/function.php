@@ -155,7 +155,6 @@ class Barang implements CRUD{
         $nama = implode(" ", $arr_nama_2);
 
         $harga = $data["harga"];
-        $stock = $data["stock"];
 
         // atur format keterangan
         $keterangan = NULL;
@@ -204,13 +203,13 @@ class Barang implements CRUD{
             
             if($row == false){
                 if($keterangan == NULL){
-                    $statement = $this->db->prepare("UPDATE barang SET nama_barang=?, harga=?, stock=?, keterangan = NULL WHERE kode_barang=?");
-                    $statement->bind_param("siii", $nama, $harga, $stock, $kode_barang);
+                    $statement = $this->db->prepare("UPDATE barang SET nama_barang=?, harga=?, keterangan = NULL WHERE kode_barang=?");
+                    $statement->bind_param("sii", $nama, $harga, $kode_barang);
                     $statement->execute();
                 }
                 else{
-                    $statement = $this->db->prepare("UPDATE barang SET nama_barang=?, harga=?, stock=?, keterangan = ? WHERE kode_barang=?");
-                    $statement->bind_param("siisi", $nama, $harga, $stock, $keterangan, $kode_barang);
+                    $statement = $this->db->prepare("UPDATE barang SET nama_barang=?, harga=?, keterangan = ? WHERE kode_barang=?");
+                    $statement->bind_param("sisi", $nama, $harga, $keterangan, $kode_barang);
                     $statement->execute();
                 }
 

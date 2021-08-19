@@ -3,17 +3,13 @@
 require_once "../barang/function.php";
 require_once "../connection.php";
 
-// <class dan implements interface>
 class Pinjam implements CRUD{
 
-    // <properti>
     private $db;
     private $dbh;
 
-    // <constructor>
     public function __construct(){
         
-        // <koneksi database>
         $this->dbh = new Connection;
         $this->db = $this->dbh->getConn();
 
@@ -21,10 +17,8 @@ class Pinjam implements CRUD{
 
     }
 
-    // <method/function>
     public function store($data){
         
-        // <variabel, properti, dan manipulasi string>
         // data customer
         $nik = $data["nik"];
         $arr_nama = explode(" ", htmlspecialchars(trim($data["nama"])));
@@ -44,59 +38,77 @@ class Pinjam implements CRUD{
         $kode_barang = $data["kode_barang"];
         $qty = $data["qty"];
 
-        // <crud>
-        // cek data customer
-        $statement = $this->db->prepare("SELECT * FROM customer WHERE nik = ?");
-        $statement->bind_param("s", $nik);
-        $statement->execute();
-        $result = $statement->get_result();
-        $statement->close();
+        try{
+            $this->db->begin_transaction();
 
-        // jika belum terdaftar
-        // <operator perbandingan>
-        if($result->num_rows == 0){
-            $statement = $this->db->prepare("INSERT INTO customer VALUES(?, ?, ?, ?)");
-            $statement->bind_param("ssss", $nik, $nama, $no_hp, $alamat);
+            // cek data customer
+            $statement = $this->db->prepare("SELECT * FROM customer WHERE nik = ?");
+            $statement->bind_param("s", $nik);
             $statement->execute();
+            $result = $statement->get_result();
+            $statement->close();
+
+            // jika belum terdaftar
+            if($result->num_rows === 0){
+                $statement = $this->db->prepare("INSERT INTO customer VALUES(?, ?, ?, ?)");
+                $statement->bind_param("ssss", $nik, $nama, $no_hp, $alamat);
+                $statement->execute();
+                $statement->close();
+            }
+
+            // total pinjaman
+            $total = 0;
+            for($i=0;$i<count($kode_barang);$i++){
+                $statement = $this->db->prepare("SELECT harga FROM barang WHERE kode_barang = ?");
+                $statement->bind_param("i", $kode_barang[$i]);
+                $statement->execute();
+                $resultset = $statement->get_result();
+                $result = $resultset->fetch_assoc();
+
+                $total += ($result["harga"]*$durasi*(int)$qty[$i]);
+            }
+
+            // insert data ke tabel pinjam
+            $statement = $this->db->prepare("INSERT INTO pinjam VALUES('', ?, ?, NULL, ?, ?, 0)");
+            $statement->bind_param("ssii", $nik, $tanggal_pinjam, $durasi, $total);
+            $statement->execute();
+            $id_pinjam = $statement->insert_id;
+
+            // ambil dan insert data
+            for($i=0;$i<count($kode_barang);$i++){
+                $stock = 0;
+                $statement = $this->db->prepare("SELECT stock FROM barang WHERE kode_barang = ?");
+                $statement->bind_param("i", $kode_barang[$i]);
+                $statement->execute();
+                $resultset = $statement->get_result();
+                $result = $resultset->fetch_assoc();
+
+                $stock = $result["stock"]-$qty[$i];
+
+                $statement = $this->db->prepare("INSERT INTO detail_pinjam VALUES(?, ?, ?)");
+                $statement->bind_param("iii", $id_pinjam, $kode_barang[$i], $qty[$i]);
+                $statement->execute();
+
+                $statement = $this->db->prepare("UPDATE barang SET stock = ? WHERE kode_barang = ?");
+                $statement->bind_param("ii", $stock, $kode_barang[$i]);
+                $statement->execute();
+            }
+
+            if($this->db->commit() === true){
+                $_SESSION["success"]="Data peminjaman berhasil ditambahkan";
+            }
+            else{
+                $_SESSION["fail"]="Data peminjaman gagal ditambahkan";
+            }
+
             $statement->close();
         }
-
-        // insert data ke tabel pinjam
-        $statement = $this->db->prepare("INSERT INTO pinjam VALUES('', ?, ?, ?, 0)");
-        $statement->bind_param("ssi", $nik, $tanggal_pinjam, $durasi);
-        $statement->execute();
-        $id_pinjam = $statement->insert_id;
-        $statement->close();
-
-        // ambil dan insert data
-        for($i=0;$i<count($kode_barang);$i++){
-            $stock = 0;
-            $statement = $this->db->prepare("SELECT stock FROM barang WHERE kode_barang = ?");
-            $statement->bind_param("i", $kode_barang[$i]);
-            $statement->execute();
-            $resultset = $statement->get_result();
-            $result = $resultset->fetch_assoc();
-
-            $stock = $result["stock"]-$qty[$i];
-
-            $statement = $this->db->prepare("INSERT INTO detail_pinjam VALUES(?, ?, ?)");
-            $statement->bind_param("iii", $id_pinjam, $kode_barang[$i], $qty[$i]);
-            $statement->execute();
-
-            $statement = $this->db->prepare("UPDATE barang SET stock = ? WHERE kode_barang = ?");
-            $statement->bind_param("ii", $stock, $kode_barang[$i]);
-            $statement->execute();
+        catch(Exception $e){
+            $this->db->rollback();
+            $_SESSION["fail"]="Proses gagal";
         }
 
-        if($this->db->affected_rows > 0){
-            $_SESSION["success"]="Data peminjaman berhasil ditambahkan";
-        }
-        else{
-            $_SESSION["fail"]="Data peminjaman gagal ditambahkan";
-        }
-
-        $statement->close();
-        header("Location: peminjaman.php");
+        header("Location: detail_pinjam.php?id=".$id_pinjam);
 
     }
 
@@ -119,43 +131,6 @@ class Pinjam implements CRUD{
 
     }
 
-    public function destroy_barang($id_pinjam, $kode_barang){
-        
-        try{
-            // <crud>
-            $this->db->begin_transaction();
-            $statement = $this->db->prepare("SELECT barang.stock, detail_pinjam.qty FROM barang INNER JOIN detail_pinjam ON barang.kode_barang = detail_pinjam.kode_barang WHERE id_pinjam = ? AND detail_pinjam.kode_barang = ?");
-            $statement->bind_param("ii", $id_pinjam, $kode_barang);
-            $statement->execute();
-            $resultset = $statement->get_result();
-            $result = $resultset->fetch_assoc();
-            $stock = $result["stock"] + $result["qty"];
-
-            $statement = $this->db->prepare("DELETE FROM detail_pinjam WHERE id_pinjam = ? AND kode_barang = ?");
-            $statement->bind_param("ii", $id_pinjam, $kode_barang);
-            $statement->execute();
-
-            $statement = $this->db->prepare("UPDATE barang SET stock = ? WHERE kode_barang = ?");
-            $statement->bind_param("ii", $stock, $kode_barang);
-            $statement->execute();
-
-            if($this->db->commit() == true){
-                $_SESSION["success"]="Barang berhasil dihapus";
-            }
-            else{
-                $_SESSION["fail"]="Barang gagal dihapus";
-            }
-
-            $statement->close();
-        }
-        catch(Exception $e){
-            $this->db->rollback();
-            $_SESSION["fail"]="Proses gagal";
-        }
-        header("Location: detail_pinjam.php?id=".$id_pinjam);
-
-    }
-
     public function update($data, $kode_barang){
         
     }
@@ -163,8 +138,9 @@ class Pinjam implements CRUD{
     public function show(){
 
         try{
-            // <crud>
             $this->db->begin_transaction();
+            
+            // update otomatis jika barang belum diambil setelah lewat tanggal peminjaman
             $pinjam = $this->db->query("SELECT * FROM pinjam WHERE CURDATE() > tanggal_pinjam AND status = 0");
 
             if($pinjam->num_rows > 0){
@@ -187,7 +163,7 @@ class Pinjam implements CRUD{
                 $statement->close();
             }
             
-            $daftar_pinjam = $this->db->query("SELECT customer.nama, pinjam.*, kembali.tanggal_kembali, COUNT(detail_pinjam.kode_barang) AS jumlah FROM customer INNER JOIN pinjam ON customer.nik = pinjam.nik LEFT JOIN kembali ON pinjam.id_pinjam = kembali.id_pinjam LEFT JOIN detail_pinjam ON pinjam.id_pinjam = detail_pinjam.id_pinjam GROUP BY pinjam. id_pinjam ORDER BY pinjam.tanggal_pinjam, pinjam.durasi ASC");
+            $daftar_pinjam = $this->db->query("SELECT customer.nama, pinjam.* FROM customer INNER JOIN pinjam ON customer.nik = pinjam.nik INNER JOIN detail_pinjam ON pinjam.id_pinjam = detail_pinjam.id_pinjam GROUP BY pinjam. id_pinjam ORDER BY pinjam.tanggal_pinjam DESC, pinjam.durasi ASC");
             
             $this->db->commit();
             return $daftar_pinjam;
@@ -199,27 +175,31 @@ class Pinjam implements CRUD{
 
     }
 
-    public function detail_customer($id_pinjam){
+    public function detail_pinjam($id_pinjam){
         
-        // <crud>
-        $statement = $this->db->prepare("SELECT customer.*, pinjam.* FROM customer INNER JOIN pinjam ON customer.nik = pinjam.nik WHERE id_pinjam = ?");
+        $statement = $this->db->prepare("SELECT *, DATE_ADD(tanggal_pinjam, INTERVAL durasi-1 DAY) AS estimasi_tanggal_kembali FROM customer INNER JOIN pinjam ON customer.nik = pinjam.nik WHERE id_pinjam = ?");
         $statement->bind_param("s", $id_pinjam);
         $statement->execute();
-        $result = $statement->get_result();
-        $statement->close();
-        return $result->fetch_assoc();
+        return $statement->get_result()->fetch_assoc();
 
     }
 
-    public function denda($id_pinjam){
+    public function detail_pembayaran($id_pinjam){
 
-        // <crud>
-        $statement = $this->db->prepare("SELECT kembali.tanggal_kembali, kembali.denda FROM pinjam LEFT JOIN kembali ON pinjam.id_pinjam = kembali.id_pinjam WHERE pinjam.id_pinjam = ?");
+        $statement = $this->db->prepare("SELECT id_transaksi, SUM(nominal) AS nominal FROM pembayaran WHERE id_pinjam = ?");
         $statement->bind_param("i", $id_pinjam);
         $statement->execute();
-        $result = $statement->get_result();
-        $statement->close();
-        return $result->fetch_assoc();
+        return $statement->get_result()->fetch_assoc();
+
+    }
+
+    public function detail_denda($id_pinjam){
+
+        // <crud>
+        $statement = $this->db->prepare("SELECT nominal FROM pembayaran WHERE id_pinjam = ? AND keterangan = 'Denda'");
+        $statement->bind_param("i", $id_pinjam);
+        $statement->execute();
+        return $statement->get_result()->fetch_assoc();
 
     }
 
@@ -235,58 +215,45 @@ class Pinjam implements CRUD{
         $statement = $this->db->prepare("SELECT COUNT(kode_barang) AS jumlah FROM detail_pinjam WHERE id_pinjam = ?");
         $statement->bind_param("i", $id_pinjam);
         $statement->execute();
-        $resultset = $statement->get_result();
-        array_push($result, $resultset->fetch_assoc());
+        array_push($result, $statement->get_result()->fetch_assoc());
         $statement->close();
 
         return $result;
 
     }
 
-    public function total($id_pinjam){
-
-        // <crud>
-        $statement = $this->db->prepare("SELECT SUM(barang.harga*detail_pinjam.qty*pinjam.durasi) AS total FROM pinjam INNER JOIN detail_pinjam ON pinjam.id_pinjam = detail_pinjam.id_pinjam INNER JOIN barang ON detail_pinjam.kode_barang = barang.kode_barang WHERE detail_pinjam.id_pinjam = ?");
-        $statement->bind_param("i", $id_pinjam);
-        $statement->execute();
-        $result = $statement->get_result();
-        $statement->close();
-        return $result->fetch_assoc();
-
-    }
-
     public function restore($id_pinjam){
 
         try{
-            // <crud>
             // ambil data barang yang dipinjam
             $this->db->begin_transaction();
-            $statement = $this->db->prepare("SELECT DATE_ADD(tanggal_pinjam, INTERVAL durasi-1 DAY) AS tanggal_kembali, durasi FROM pinjam WHERE id_pinjam = ?");
+            $statement = $this->db->prepare("SELECT DATE_ADD(tanggal_pinjam, INTERVAL durasi-1 DAY) AS tanggal_kembali, durasi, total FROM pinjam WHERE id_pinjam = ?");
             $statement->bind_param("i", $id_pinjam);
             $statement->execute();
-            $result = $statement->get_result();
-            $barang = $result->fetch_assoc();
-            $statement->close();
-            $result->close();
+            $estimasi_pengembalian = $statement->get_result()->fetch_assoc();
 
+            // ambil detail barang yang dipinjam
             $statement = $this->db->prepare("SELECT barang.*, detail_pinjam.qty FROM barang INNER JOIN detail_pinjam ON barang.kode_barang = detail_pinjam.kode_barang WHERE id_pinjam = ?");
             $statement->bind_param("i", $id_pinjam);
             $statement->execute();
             $detail = $statement->get_result();
-            $statement->close();
 
-            // <variabel, properti>
+            // hitung sisa pembayaran yang kurang
+            $statement = $this->db->prepare("SELECT nominal FROM pembayaran WHERE id_pinjam = ?");
+            $statement->bind_param("i", $id_pinjam);
+            $statement->execute();
+            $bayar = $statement->get_result()->fetch_assoc();
+            $lunas = $estimasi_pengembalian["total"]-$bayar["nominal"];
+
             // hitung jumlah hari telat
             $today = new DateTime();
-            $tgl_kembali = new DateTime($barang["tanggal_kembali"]);
+            $tgl_kembali = new DateTime($estimasi_pengembalian["tanggal_kembali"]);
             $telat = $today->diff($tgl_kembali)->d;
             $now = $today->format("Y-m-d");
 
-            // <operator perbandingan>
             // jika telat
             if($telat > 0 && $tgl_kembali->format("Y-m-d") < $now){
                 $denda = 0;
-                // <aritmatika>
                 foreach($detail as $brg){
                     if($brg["harga"] <= 50000){
                         $denda += 5000*$brg["qty"]*$telat;
@@ -308,25 +275,45 @@ class Pinjam implements CRUD{
                     }
                 }
 
-                $statement = $this->db->prepare("INSERT INTO kembali VALUES(?, ?, ?)");
+                // tambahkan tanggal kembali
+                $statement = $this->db->prepare("UPDATE pinjam SET tanggal_kembali = ? WHERE id_pinjam = ?");
+                $statement->bind_param("si", $now, $id_pinjam);
+                $statement->execute();
+
+                // pelunasan pembayaran
+                $statement = $this->db->prepare("INSERT INTO pembayaran VALUES('', ?, ?, ?, 'Sisa Pembayaran')");
+                $statement->bind_param("isi", $id_pinjam, $now, $lunas);
+                $statement->execute();
+
+                // pembayaran denda
+                $statement = $this->db->prepare("INSERT INTO pembayaran VALUES('', ?, ?, ?, 'Denda')");
                 $statement->bind_param("isi", $id_pinjam, $now, $denda);
                 $statement->execute();
 
+                // update status peminjaman
                 $statement = $this->db->prepare("UPDATE pinjam SET status = 3 WHERE id_pinjam = ?");
                 $statement->bind_param("i", $id_pinjam);
                 $statement->execute();
             }
             // jika tidak telat
             else{
-                $statement = $this->db->prepare("INSERT INTO kembali VALUES(?, ?, NULL)");
-                $statement->bind_param("is", $id_pinjam, $now);
+                // tambahkan tanggal kembali
+                $statement = $this->db->prepare("UPDATE pinjam SET tanggal_kembali = ? WHERE id_pinjam = ?");
+                $statement->bind_param("si", $now, $id_pinjam);
                 $statement->execute();
 
+                // pelunasan pembayaran
+                $statement = $this->db->prepare("INSERT INTO pembayaran VALUES('', ?, ?, ?, 'Sisa Pembayaran')");
+                $statement->bind_param("isi", $id_pinjam, $now, $lunas);
+                $statement->execute();
+
+                // update status peminjaman
                 $statement = $this->db->prepare("UPDATE pinjam SET status = 2 WHERE id_pinjam = ?");
                 $statement->bind_param("i", $id_pinjam);
                 $statement->execute();
             }
 
+            // update stock barang
             foreach($detail as $brg){
                 $restock = $brg["stock"] + $brg["qty"];
                 $statement = $this->db->prepare("UPDATE barang SET stock = ? WHERE kode_barang = ?");
@@ -334,7 +321,7 @@ class Pinjam implements CRUD{
                 $statement->execute();
             }
             
-            if($this->db->commit() == true){
+            if($this->db->commit() === true){
                 $_SESSION["success"]="Barang berhasil dikembalikan";
             }
             else{
@@ -355,19 +342,18 @@ class Pinjam implements CRUD{
     public function cancel($id_pinjam){
         
         try{
-            // <crud>
-            // ambil data barang yang dipinjam
             $this->db->begin_transaction();
+            $statement = $this->db->prepare("UPDATE pinjam SET tanggal_kembali = NULL WHERE id_pinjam = ?");
+            $statement->bind_param("i", $id_pinjam);
+            $statement->execute();  
+
+            // ambil detail barang yang dipinjam
             $statement = $this->db->prepare("SELECT barang.*, detail_pinjam.qty FROM barang INNER JOIN detail_pinjam ON barang.kode_barang = detail_pinjam.kode_barang WHERE id_pinjam = ?");
             $statement->bind_param("i", $id_pinjam);
             $statement->execute();
             $detail = $statement->get_result();
-            $statement->close();
 
-            $statement = $this->db->prepare("DELETE FROM kembali WHERE id_pinjam = ?");
-            $statement->bind_param("i", $id_pinjam);
-            $statement->execute();
-
+            // mengurangi stock barang
             foreach($detail as $brg){
                 $restock = $brg["stock"] - $brg["qty"];
                 $statement = $this->db->prepare("UPDATE barang SET stock = ? WHERE kode_barang = ?");
@@ -375,11 +361,17 @@ class Pinjam implements CRUD{
                 $statement->execute();
             }
 
+            // menghapus transaksi pelunasan dan denda
+            $statement = $this->db->prepare("DELETE FROM pembayaran WHERE id_pinjam = ? AND keterangan NOT IN ('Pembayaran DP')");
+            $statement->bind_param("i", $id_pinjam);
+            $statement->execute();
+
+            // mengupdate status peminjaman
             $statement = $this->db->prepare("UPDATE pinjam SET status = 1 WHERE id_pinjam = ?");
             $statement->bind_param("i", $id_pinjam);
             $statement->execute();
 
-            if($this->db->commit() == true){
+            if($this->db->commit() === true){
                 $_SESSION["success"]="Pengembalian berhasil dibatalkan";
             }
             else{
@@ -408,6 +400,64 @@ class Pinjam implements CRUD{
         }
         else{
             $_SESSION["fail"]="Barang gagal diambil";
+        }
+
+        header("Location: detail_pinjam.php?id=".$id_pinjam);
+
+    }
+
+    public function bayarDP($id_pinjam, $data){
+
+        $nominal = (int)htmlspecialchars(trim($data["bayarDP"]));
+        $today = date("Y-m-d");
+
+        $statement = $this->db->prepare("INSERT INTO pembayaran VALUES('', ?, ?, ?, 'Pembayaran DP')");
+        $statement->bind_param("isi", $id_pinjam, $today, $nominal);
+        $statement->execute();
+
+        if($this->db->affected_rows > 0){
+            $_SESSION["success"]="Pembayaran DP berhasil";
+        }
+        else{
+            $_SESSION["fail"]="Pembayaran DP gagal";
+        }
+
+        header("Location: detail_pinjam.php?id=".$id_pinjam);
+
+    }
+
+    public function perpanjang_pinjam($id_pinjam, $data){
+
+        $durasi = (int)htmlspecialchars(trim($data["durasi"]));
+        
+        try {
+            $this->db->begin_transaction();
+
+            // ambil data durasi sebelumnya
+            $statement = $this->db->prepare("SELECT durasi FROM pinjam WHERE id_pinjam = ?");
+            $statement->bind_param("i", $id_pinjam);
+            $statement->execute();
+            $old_durasi = $statement->get_result()->fetch_assoc()["durasi"];
+            $new_durasi = $old_durasi+$durasi;
+
+            // tambahkan durasi
+            $statement = $this->db->prepare("UPDATE pinjam SET durasi = ? WHERE id_pinjam = ?");
+            $statement->bind_param("ii", $new_durasi, $id_pinjam);
+            $statement->execute();
+
+            if($this->db->commit() === true){
+                $_SESSION["success"]="Durasi berhasil ditambah";
+            }
+            else{
+                $_SESSION["fail"]="Durasi gagal ditambah";
+            }
+
+            $statement->close();
+            $new_durasi->delete;
+        } 
+        catch(Exception $e){
+            $this->db->rollback();
+            $_SESSION["fail"]="Proses gagal";
         }
 
         header("Location: detail_pinjam.php?id=".$id_pinjam);

@@ -1,72 +1,32 @@
 <?php
 
-    session_start();
     require_once "function.php";
+    $menu = "Pinjam";
+    $title = "Detail Pinjam";
+    include_once "../header.php";
 
     date_default_timezone_set('Asia/Jakarta');
 
     if(isset($_GET["id"])){
-        // <object>
         $detail = new Pinjam;
 
-        // <variabel>
         $id_pinjam = $_GET["id"];
 
         // ambil data customer
-        $customer = $detail->detail_customer($id_pinjam);
+        $customer_pinjam = $detail->detail_pinjam($id_pinjam);
 
         // ambil detail denda
-        $kembali = $detail->denda($id_pinjam);
+        $denda = $detail->detail_denda($id_pinjam);
 
         // ambil data barang yang dipinjam
         $barang = $detail->detail_barang($id_pinjam);
 
-        // ambil total pinjam
-        $total = $detail->total($id_pinjam);
+        // ambil data jumlah pembayaran
+        $bayar = $detail->detail_pembayaran($id_pinjam);
     }
 
 ?>
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
-    <link rel="stylesheet" href="../node_modules/sweetalert2/dist/sweetalert2.min.css">
-    <link rel="stylesheet" href="../css/style.css">
-
-    <title>Detail Pinjam | Oreivasia</title>
-  </head>
-  <body>
-    
-    <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-primary">
-        <div class="container-fluid container">
-            <a class="navbar-brand text-white brand-navbar" href="../index.php">Oreivasia</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo02" aria-controls="navbarTogglerDemo02" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarTogglerDemo02">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link text-white" aria-current="page" href="../index.php">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white link-active rounded" href="peminjaman.php">Pinjam</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="../barang/barang.php">Barang</a>
-                    </li>
-                </ul>
-                <form class="d-flex">
-                    <button class="btn btn-outline-dark" type="submit" name="logout">Logout</button>
-                </form>
-            </div>
-        </div>
-    </nav>
 
     <div class="container content">
         <div class="card rounded shadow-lg mb-5">
@@ -74,52 +34,96 @@
                 <h3 class="text-primary fw-bold">Detail Peminjaman</h3>
                 <div class="row">
                     <div class="col-md-6">
-                        <p><span class="fw-bold">Nama</span> <span style="margin-left: 43px;">: <?= $customer["nama"] ?></span></p>
+                        <p><span class="fw-bold">Nama</span> <span style="margin-left: 43px;">: <?= $customer_pinjam["nama"] ?></span></p>
                     </div>
                     <div class="col-md-6">
-                        <p><span class="fw-bold">Nik</span> <span style="margin-left: 62px;">: <?= $customer["nik"] ?></span></p>
+                        <p><span class="fw-bold">Nik</span> <span style="margin-left: 62px;">: <?= $customer_pinjam["nik"] ?></span></p>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <p><span class="fw-bold">No. Hp</span> <span style="margin-left: 36px;">: <?= $customer["no_hp"] ?></span></p>
+                        <p><span class="fw-bold">No. Hp</span> <span style="margin-left: 36px;">: <?= $customer_pinjam["no_hp"] ?></span></p>
                     </div>
                     <div class="col-md-6">
-                        <p><span class="fw-bold">Alamat</span> <span style="margin-left: 33px;">: <?= $customer["alamat"] ?></span></p>
+                        <p><span class="fw-bold">Alamat</span> <span style="margin-left: 33px;">: <?= $customer_pinjam["alamat"] ?></span></p>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">
-                        <p><span class="fw-bold">Total</span> <span style="margin-left: 50px;">: Rp. <?= number_format($total["total"], 0, ",", ".") ?></span>
-                        </p>
-                    </div>
                     <div class="col-md-6">
                         <p><span class="fw-bold text-danger">Denda</span> <span style="margin-left: 38px;">
-                        <?php 
-                            if($kembali["denda"] > 0){
-                                echo ": Rp. ".number_format($kembali["denda"], 0, ",", ".");
-                            }
-                            else{
-                                echo ": -";
-                            }
-                        ?></span></p>
+                        <?= $denda !== NULL ? ": Rp. ".number_format($denda["nominal"], 0, ",", ".") : ": Rp. 0"; ?></span></p>
                     </div>
+                    <?php if(($bayar["nominal"] === NULL)): ?>
+                    <div class="col-md-2">
+                        <div class="alert alert-danger text-center" role="alert">
+                        <strong>Belum bayar DP</strong>
+                        </div>
+                    </div>
+                    <?php endif ?>
                 </div>
             </div>
             <div class="card-body">
                 <a class="btn btn-outline-primary mb-3" href="peminjaman.php">Kembali</a>
 
-                <?php if(($customer["status"] == 0) && (date("Y-m-d") == $customer["tanggal_pinjam"]) && ($barang[1]["jumlah"] != 0)): ?>
-                <a href="middleware.php?id=<?= $id_pinjam ?>&action=put" class="btn btn-outline-success mb-3">Ambil barang</a>
+                <!-- tombol ambil barang -->
+                <?php if(($customer_pinjam["status"] === 0) && (date("Y-m-d") === $customer_pinjam["tanggal_pinjam"]) && ($bayar["nominal"] > 0)): ?>
+                <a href="middleware.php?id=<?= $id_pinjam ?>&action=put" class="btn btn-outline-success mb-3">
+                    Ambil barang
+                </a>
                 <?php endif ?>
 
-                <?php if(($kembali["tanggal_kembali"] == NULL) && ($customer["status"] == 1)): ?>
-                <a href="middleware.php?id=<?= $id_pinjam ?>&action=restore" class="btn btn-outline-success mb-3">Kembalikan Barang</a>
+                <!-- tombol kembalikan barang -->
+                <?php if(($customer_pinjam["status"] === 1)): ?>
+                <a href="middleware.php?id=<?= $id_pinjam ?>&action=restore" class="btn btn-outline-success mb-3">
+                    Kembalikan Barang
+                </a>
                 <?php endif ?>
 
-                <?php if(($kembali["tanggal_kembali"] != NULL)): ?>
-                <a href="#" class="btn btn-outline-danger mb-3" onclick="cancel(<?= $id_pinjam ?>)">Batalkan pengembalian</a>
+                <!-- tombol batalkan pengembalian barang -->
+                <?php if(($customer_pinjam["tanggal_kembali"] !== NULL)): ?>
+                <a href="#" class="btn btn-outline-danger mb-3" onclick="cancel(<?= $id_pinjam ?>)">
+                    Batalkan pengembalian
+                </a>
                 <?php endif ?>
+                
+                <!-- tombol memperpanjang peminjaman -->
+                <?php if(($customer_pinjam["status"] === 1) && (date("Y-m-d") === $customer_pinjam["estimasi_tanggal_kembali"])): ?>
+                <button class="btn btn-success mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePerpanjangPinjam" aria-expanded="false" aria-controls="collapsePerpanjangPinjam">
+                    Perpanjang
+                </button>
+                <?php endif ?>
+
+                <!-- form perpanjang peminjaman -->
+                <div class="collapse" id="collapsePerpanjangPinjam">
+                    <form action="middleware.php?id=<?= $id_pinjam ?>&action=perpanjang" method="post" id="add_duration" onsubmit="return add_duration_validation()">
+                        <div class="col-md-2 col-sm-2"> 
+                            <label for="durasi" class="form-label">Durasi Tambahan (hari)<sup class="text-danger">*</sup></label>
+                            <input type="text" maxlength="2" name="durasi" id="durasi" class="form-control" onkeypress="return event.charCode >= 48 && event.charCode <=57">
+                            <p class="invalid-feedback"><!--message--></p>
+                        </div>
+                        <button type="submit" class="btn btn-outline-success mt-3">Tambah</button>
+                    </form>
+                </div>
+
+                <!-- tombol pembayaran dp -->
+                <?php if(($customer_pinjam["status"] === 0) && (date("Y-m-d") <= $customer_pinjam["tanggal_pinjam"]) && ($bayar["nominal"] === NULL)): ?>
+                <button class="btn btn-success mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePembayaran" aria-expanded="false" aria-controls="collapsePembayaran">
+                    Bayar DP
+                </button>
+                <?php endif ?>
+
+                <!-- form pembayaran dp -->
+                <div class="collapse" id="collapsePembayaran">
+                    <form action="middleware.php?id=<?= $id_pinjam ?>&action=pembayaranDP" method="post" id="pembayaranDP" onsubmit="return payment_validation(<?= $customer_pinjam['total'] ?>)">
+                        <div class="col-md-2 col-sm-2"> 
+                            <label for="bayarDP" class="form-label">Nominal<sup class="text-danger">*</sup></label>
+                            <input type="text" name="bayarDP" id="bayarDP" class="form-control" onkeypress="return event.charCode >= 48 && event.charCode <=57">
+                            <p class="invalid-feedback"><!--message--></p>
+                        </div>
+                        <button type="submit" class="btn btn-outline-success mt-3">Bayar</button>
+                    </form>
+                </div>
+
                 <table class="table table-striped">
                     <thead>
                         <tr class="text-center">
@@ -129,9 +133,6 @@
                             <th>Qty</th>
                             <th>Sub Total</th>
                             <th>Keterangan</th>
-                            <?php if(date('Y-m-d') < $customer["tanggal_pinjam"]): ?>
-                            <th>Aksi</th>
-                            <?php endif ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -141,7 +142,7 @@
                             <td><?= $brg["nama_barang"] ?></td>
                             <td>Rp. <?= number_format($brg["harga"], 0, ",", ".")?></td>
                             <td><?= $brg["qty"] ?></td>
-                            <td>Rp. <?= number_format($brg["harga"]*$brg["qty"]*$customer["durasi"], 0, ",", ".")?></td>
+                            <td>Rp. <?= number_format($brg["harga"]*$brg["qty"]*$customer_pinjam["durasi"], 0, ",", ".")?></td>
                             <td>
                                 <?php 
                                     if($brg["keterangan"] == NULL) echo "-";
@@ -149,36 +150,29 @@
 
                                 ?>
                             </td>
-                            <?php if((date('Y-m-d') < $customer["tanggal_pinjam"])): ?>
-                            <td>
-                                <a href="#" class="btn btn-outline-danger" onclick="hapus(<?= $id_pinjam ?>, <?= $brg['kode_barang'] ?>)">Hapus</a>
-                            </td>
-                            <?php endif ?>
                         </tr>
                         <?php endforeach ?>
                     </tbody>
                 </table>
+
+                <div id="payment" class="px-5 float-end">
+                    <p class="px-md-5"><strong>Total <span style="margin-left: 7rem;">: Rp. <?= number_format($customer_pinjam["total"], 0, ",", ".") ?></span></strong></p>
+                    <p class="px-md-5"><strong>Pembayaran <span style="margin-left: 3.6rem;">: Rp. <?= number_format($bayar["nominal"], 0, ",", ".") ?></span></strong></p>
+                    <p class="px-md-5"><strong>Sisa <span style="margin-left: 7.3rem;">: Rp. <?= number_format($customer_pinjam["total"]-$bayar["nominal"], 0, ",", ".") ?></span></strong></p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- footer -->
-    <div class="footer">
-        <p class="text-center">©develop by Ade Iqbal</p>
-        <p class="text-center">@2021</p>
-    </div>
-    <!-- akhir footer -->
+    <?php include_once "../footer.php" ?>
 
     <!-- Optional JavaScript; choose one of the two! -->
 
     <!-- Option 1: Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
-    <script src="../node_modules/sweetalert2/dist/sweetalert2.min.js"></script>
     <script>
-
-        // <function, args, return, kotak dialog>
         // sweet alert cancel
-        function cancel(id) {
+        function cancel(id_pinjam) {
 
             Swal.fire({
                 title: 'Yakin untuk membatalkan?',
@@ -191,61 +185,15 @@
                 cancelButtonText: 'Tidak',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location = "middleware.php?id="+id+"&action=cancel";
-                }
-            });
-
-        }
-
-        // <function, args, return, kotak dialog>
-        // sweet alert delete
-        function hapus(id, kode_brg) {
-
-            Swal.fire({
-                title: 'Yakin untuk menghapus?',
-                text: "klik 'Ya' untuk melanjutkan",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya',
-                cancelButtonText: 'Tidak',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location = "middleware.php?id="+id+"&brg="+kode_brg+"&action=destroy_barang";
+                    window.location = `middleware.php?id=${id_pinjam}&action=cancel`;
                 }
             });
 
         }
     </script>
-
-    <!-- <kota dialog> -->
-    <!-- sweet alert success -->
-    <?php if(isset($_SESSION["success"])): ?>
-    <script>
-        Swal.fire({
-            position: 'center',
-            icon: 'success',
-            title: '<?php echo $_SESSION["success"] ?>',
-            showConfirmButton: false,
-            timer: 1500
-        })
-    </script>
-    <?php session_unset(); endif; ?>
-
-    <!-- sweet alert fail -->
-    <?php if(isset($_SESSION["fail"])): ?> 
-    <script>
-        Swal.fire({
-            position: 'center',
-            icon: 'error',
-            title: 'Oops...',
-            text: '<?php echo $_SESSION["fail"] ?>',
-            showConfirmButton: false,
-            timer: 1500
-        })
-    </script>
-    <?php session_unset(); endif; ?>
+    
+    <script src="../js/pembayaran.js"></script>
+    <script src="../js/perpanjangan.js"></script>
 
     <!-- Option 2: Separate Popper and Bootstrap JS -->
     <!--

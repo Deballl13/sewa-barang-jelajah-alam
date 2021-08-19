@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 14, 2021 at 11:29 AM
+-- Generation Time: Aug 17, 2021 at 08:22 PM
 -- Server version: 10.4.17-MariaDB
 -- PHP Version: 8.0.2
 
@@ -20,6 +20,26 @@ SET time_zone = "+00:00";
 --
 -- Database: `oreivasia`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin`
+--
+
+CREATE TABLE `admin` (
+  `id` int(11) NOT NULL,
+  `username` varchar(12) NOT NULL,
+  `password` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`id`, `username`, `password`) VALUES
+(1, 'admin', '$2y$10$D1CECR6b4h7qNltQtfO9gOT/BG1wpB4DeXVXz5eZJRszOFFJ8z9yy'),
+(9, 'debal', '$2y$10$MIfyLteXLXw6/TlqfD1wge5IjBFaTcO3Ubjp.1qSVyyycVkY7azTu');
 
 -- --------------------------------------------------------
 
@@ -42,11 +62,11 @@ CREATE TABLE `barang` (
 INSERT INTO `barang` (`kode_barang`, `nama_barang`, `harga`, `stock`, `keterangan`) VALUES
 (26, 'Tenda Rei', 80000, 42, 'Isi 5'),
 (27, 'Tenda Eiger', 90000, 43, 'Isi 5'),
-(74, 'Tenda Rei', 120000, 31, 'Isi 10'),
+(74, 'Tenda Rei', 120000, 31, 'Isi 2'),
 (75, 'Nesting', 35000, 35, NULL),
 (94, 'Matras', 20000, 20, 'Tenda isi 2'),
-(95, 'Matras', 35000, 27, 'Tenda isi 5'),
-(100, 'Handlamp', 5000, 32, 'Led');
+(95, 'Matras', 35000, 25, 'Tenda isi 5'),
+(100, 'Handlamp', 5000, 30, 'Led');
 
 -- --------------------------------------------------------
 
@@ -68,12 +88,14 @@ CREATE TABLE `customer` (
 INSERT INTO `customer` (`nik`, `nama`, `no_hp`, `alamat`) VALUES
 ('1231231231231231', 'Dodi Santoso', '123123123123', 'Taruko 3, Kalumbuk'),
 ('1231231242341231', 'Hafzhan Wisli', '081232132131', 'Simpang akhirat'),
+('1231234242412343', 'Vira Yulia', '089678543252', 'Dumai, Pekanbaru'),
 ('1232131231231231', 'Ridwan Hasibuan', '081128217732', 'Manggis Raya 7, Belimbing'),
 ('1942991721021921', 'Afdal Halim', '082131231231', 'Jln. kebun jeruk'),
 ('1942991721021922', 'Budi Purnama', '081128217732', 'Jalan Tunas Mangga, Mangga 8, Belimbing'),
 ('1942991721021923', 'Ade Iqbal', '081122109277', 'Jln. Manggis no. 3'),
 ('2131232131231231', 'Ikhlas Maulana', '081231231231', 'Jln. Apel no. 3'),
-('2342342321212344', 'Surya Purnama', '083123123123', 'Jln. manggis no. 15');
+('2342342321212344', 'Surya Purnama', '083123123123', 'Jln. manggis no. 15'),
+('9876543211234567', 'Andini Agesta Putri', '081231231231', 'Perum manggis belimbing raya');
 
 -- --------------------------------------------------------
 
@@ -99,7 +121,13 @@ INSERT INTO `detail_pinjam` (`id_pinjam`, `kode_barang`, `qty`) VALUES
 (15, 94, 3),
 (15, 100, 3),
 (19, 94, 2),
-(19, 100, 2);
+(19, 100, 2),
+(21, 94, 2),
+(21, 100, 2),
+(27, 94, 3),
+(27, 100, 3),
+(28, 27, 3),
+(28, 75, 2);
 
 -- --------------------------------------------------------
 
@@ -118,8 +146,11 @@ CREATE TABLE `kembali` (
 --
 
 INSERT INTO `kembali` (`id_pinjam`, `tanggal_kembali`, `denda`) VALUES
-(1, '2021-06-13', 90000),
-(10, '2021-06-11', NULL);
+(1, '2021-07-03', 690000),
+(10, '2021-06-11', NULL),
+(21, '2021-07-06', 20000),
+(27, '2021-07-06', NULL),
+(28, '2021-07-06', 40000);
 
 -- --------------------------------------------------------
 
@@ -132,6 +163,7 @@ CREATE TABLE `pinjam` (
   `nik` varchar(19) NOT NULL,
   `tanggal_pinjam` date NOT NULL,
   `durasi` int(2) NOT NULL,
+  `total` int(11) NOT NULL,
   `status` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
@@ -139,15 +171,24 @@ CREATE TABLE `pinjam` (
 -- Dumping data for table `pinjam`
 --
 
-INSERT INTO `pinjam` (`id_pinjam`, `nik`, `tanggal_pinjam`, `durasi`, `status`) VALUES
-(1, '1232131231231231', '2021-06-08', 3, 3),
-(10, '1942991721021923', '2021-06-09', 3, 2),
-(15, '1231231242341231', '2021-06-15', 3, 0),
-(19, '1942991721021921', '2021-06-12', 3, 4);
+INSERT INTO `pinjam` (`id_pinjam`, `nik`, `tanggal_pinjam`, `durasi`, `total`, `status`) VALUES
+(1, '1232131231231231', '2021-06-08', 3, 750000, 3),
+(10, '1942991721021923', '2021-06-09', 3, 330000, 2),
+(15, '1231231242341231', '2021-06-15', 3, 225000, 4),
+(19, '1942991721021921', '2021-06-12', 3, 150000, 4),
+(21, '1231231231231231', '2021-07-03', 3, 150000, 3),
+(27, '9876543211234567', '2021-07-04', 3, 225000, 2),
+(28, '1231234242412343', '2021-07-04', 2, 680000, 3);
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `admin`
+--
+ALTER TABLE `admin`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `barang`
@@ -186,22 +227,28 @@ ALTER TABLE `pinjam`
 --
 
 --
+-- AUTO_INCREMENT for table `admin`
+--
+ALTER TABLE `admin`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
 -- AUTO_INCREMENT for table `barang`
 --
 ALTER TABLE `barang`
-  MODIFY `kode_barang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=113;
+  MODIFY `kode_barang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=115;
 
 --
 -- AUTO_INCREMENT for table `kembali`
 --
 ALTER TABLE `kembali`
-  MODIFY `id_pinjam` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_pinjam` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `pinjam`
 --
 ALTER TABLE `pinjam`
-  MODIFY `id_pinjam` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id_pinjam` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- Constraints for dumped tables
