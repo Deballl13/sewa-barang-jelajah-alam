@@ -45,10 +45,15 @@ if(!isset($_SESSION["login"])){
                     <li class="nav-item">
                         <a class="nav-link text-white <?php if($menu=="Barang"): ?> link-active <?php endif ?>" href="/prakweb/tb/barang/barang.php">Barang</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white <?php if($menu=="Restock"): ?> link-active <?php endif ?>" href="/prakweb/tb/barang/restock.php">Restock</a>
+                    </li>
                 </ul>
-                <form action="/prakweb/tb/auth/middleware.php" method="POST" class="d-flex">
-                    <button class="btn btn-outline-dark" type="submit" name="logout">Logout</button>
-                </form>
+                <div class="row">
+                    <form action="/prakweb/tb/auth/middleware.php" method="POST" class="d-flex">
+                        <button class="btn btn-outline-dark col-sm-12 col-12" type="submit" name="logout">Logout</button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>

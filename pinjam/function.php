@@ -186,7 +186,7 @@ class Pinjam implements CRUD{
 
     public function detail_pembayaran($id_pinjam){
 
-        $statement = $this->db->prepare("SELECT id_transaksi, SUM(nominal) AS nominal FROM pembayaran WHERE id_pinjam = ?");
+        $statement = $this->db->prepare("SELECT id_transaksi, SUM(nominal) AS nominal FROM pembayaran WHERE id_pinjam = ? AND keterangan NOT IN ('Denda')");
         $statement->bind_param("i", $id_pinjam);
         $statement->execute();
         return $statement->get_result()->fetch_assoc();
@@ -195,7 +195,6 @@ class Pinjam implements CRUD{
 
     public function detail_denda($id_pinjam){
 
-        // <crud>
         $statement = $this->db->prepare("SELECT nominal FROM pembayaran WHERE id_pinjam = ? AND keterangan = 'Denda'");
         $statement->bind_param("i", $id_pinjam);
         $statement->execute();

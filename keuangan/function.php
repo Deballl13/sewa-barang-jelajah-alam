@@ -16,7 +16,7 @@ class Keuangan{
 
     public function currentMonth(){
         
-        $result = $this->db->query("SELECT MONTH(tanggal_pinjam) AS bulan, SUM(total) AS income FROM pinjam WHERE date_format(CURDATE(), '%Y') = YEAR(tanggal_pinjam) AND date_format(CURDATE(), '%m') = MONTH(tanggal_pinjam) ORDER BY YEAR(tanggal_pinjam), MONTH(tanggal_pinjam) ASC");
+        $result = $this->db->query("SELECT SUM(nominal) AS income FROM pembayaran WHERE date_format(CURDATE(), '%Y') = YEAR(tanggal) AND date_format(CURDATE(), '%m') = MONTH(tanggal) ORDER BY YEAR(tanggal), MONTH(tanggal) ASC");
 
         return $result->fetch_assoc();
         

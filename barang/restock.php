@@ -1,7 +1,7 @@
 <?php
 
-$menu="Barang";
-$title="Barang";
+$menu="Restock";
+$title="Restock";
 include_once "../header.php";
 
 ?>

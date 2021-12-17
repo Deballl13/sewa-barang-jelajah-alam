@@ -25,6 +25,8 @@
         $bayar = $detail->detail_pembayaran($id_pinjam);
     }
 
+    if($denda["nominal"] === NULL) $denda["nominal"]=0;
+
 ?>
 
 
@@ -158,6 +160,11 @@
                 <div id="payment" class="px-5 float-end">
                     <p class="px-md-5"><strong>Total <span style="margin-left: 7rem;">: Rp. <?= number_format($customer_pinjam["total"], 0, ",", ".") ?></span></strong></p>
                     <p class="px-md-5"><strong>Pembayaran <span style="margin-left: 3.6rem;">: Rp. <?= number_format($bayar["nominal"], 0, ",", ".") ?></span></strong></p>
+
+                    <?php if($denda["nominal"] !== 0): ?>
+                    <p class="px-md-5"><strong>Denda <span style="margin-left: 6.2rem;">: Rp. <?= number_format($denda["nominal"], 0, ",", ".") ?></span></strong></p>
+                    <?php endif ?>
+
                     <p class="px-md-5"><strong>Sisa <span style="margin-left: 7.3rem;">: Rp. <?= number_format($customer_pinjam["total"]-$bayar["nominal"], 0, ",", ".") ?></span></strong></p>
                 </div>
             </div>
